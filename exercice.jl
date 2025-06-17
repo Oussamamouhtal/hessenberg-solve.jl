@@ -4,10 +4,12 @@ using LinearAlgebra
 #    du système triangulaire supérieur Rx = b.
 #    Votre fonction ne doit modifier ni R ni b.
 function backsolve(R::UpperTriangular, b)
+    # La matrice R doit etre inversible
     x = similar(b)
-    ### votre code ici ; ne rien modifier d'autre
-    # ...
-    ###
+    n = length(b)
+    for i in n:-1:1
+        x[i] = (b[i] - R[i, i+1:end]' * x[i+1:end]) / R[i, i]
+    end
     return x
 end
 
@@ -20,10 +22,32 @@ end
 #    fonction ne doit pas les renvoyer.
 #    Seul le cas réel sera testé ; pas le cas complexe.
 function hessenberg_solve(H::UpperHessenberg, b)
-    ### votre code ici ; ne rien modifier d'autre
-    # ...
-    # x = ...
-    ###
+    # La matrice H doit etre de rang plein
+    n, m = size(H)
+    index = min(n-1,m) # Manière optimisé permet de distinguer les deux cas (n=m+1 ou n =m)
+
+    for i in 1:index
+        x, y = H[i, i], H[i+1, i]
+        r = sqrt(x^2 + y^2)
+        c = x / r
+        s = y / r
+        H[i, i] = r
+        H[i+1, i] = 0
+        for j in i+1:m 
+            inter = H[i, j]     # Variable intermédiaire 
+            H[i, j] = c * H[i, j] + s * H[i+1, j]
+            H[i+1, j] = -s * inter + c * H[i+1, j]     
+        end
+
+        # Appliquer la rotation à b 
+        inter = b[i]        # Variable intermédiaire 
+        b[i] = c * b[i] + s * b[i+1]
+        b[i+1] = -s * inter + c * b[i+1]
+    end
+
+    # Résoudre le système triangulaire supérieur avec "backsolve"
+    R = UpperTriangular(H[1:m, 1:m])
+    x = backsolve(R, b[1:m])
     return x
 end
 
@@ -38,7 +62,7 @@ for n ∈ (10, 20, 30)
     x = backsolve(R, b)
     @test norm(R * x - b) ≤ sqrt(eps()) * norm(b)
     H = UpperHessenberg(A)
-    x = hessenberg_solve(copy(H), copy(b))
+    x = hessenberg_solve(copy(H), copy(b)) 
     @test norm(H * x - b) ≤ sqrt(eps()) * norm(b)
     # slightly overdetermined least squares
     A = rand(n + 1, n)
