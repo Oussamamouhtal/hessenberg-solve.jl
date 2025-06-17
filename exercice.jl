@@ -23,17 +23,17 @@ end
 #    Seul le cas réel sera testé ; pas le cas complexe.
 function hessenberg_solve(H::UpperHessenberg, b)
     # La matrice H doit etre de rang plein
-    n, m = size(H)
-    index = min(n-1,m) # Manière optimisé permet de distinguer les deux cas (n=m+1 ou n =m)
+    m, n = size(H)
+    index = min(m-1,n) # Manière optimisé permet de distinguer les deux cas (m=n+1 ou m=n)
 
     for i in 1:index
         x, y = H[i, i], H[i+1, i]
-        r = sqrt(x^2 + y^2)
+        r = norm([x, y])
         c = x / r
         s = y / r
         H[i, i] = r
         H[i+1, i] = 0
-        for j in i+1:m 
+        for j in i+1:n 
             inter = H[i, j]     # Variable intermédiaire 
             H[i, j] = c * H[i, j] + s * H[i+1, j]
             H[i+1, j] = -s * inter + c * H[i+1, j]     
@@ -46,8 +46,8 @@ function hessenberg_solve(H::UpperHessenberg, b)
     end
 
     # Résoudre le système triangulaire supérieur avec "backsolve"
-    R = UpperTriangular(H[1:m, 1:m])
-    x = backsolve(R, b[1:m])
+    R = UpperTriangular(H[1:n, 1:n])
+    x = backsolve(R, b[1:n])
     return x
 end
 
